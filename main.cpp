@@ -16,9 +16,9 @@ static unordered_map<string, string> getPartsMap() {
     return {
         {"1", "Motherboard"}, {"2", "Keyboard"}, {"3", "Touchscreen"}, {"4", "LCD"},
         {"5", "Top Cover"}, {"6", "Bottom Cover"}, {"7", "Touchpad"}, {"8", "Bezel"},
-        {"9", "Hinge Cover"}, {"0", "Cable Kit"}, {"A", "DC Plug"}, {"B", "Audio Board"},
-        {"C", "NIC"}, {"D", "Webcam"}, {"E", "Battery"}, {"F", "SSD/HDD"},
-        {"G", "Speaker"}, {"H", "Heat Sink"}
+        {"9", "Hinge Cover"}, {"0", "Cable Kit"}, {"A", "LCD cable kit"}, {"B", "DC Plug"},
+        {"C", "Audio Board"}, {"D", "NIC"}, {"E", "Webcam"}, {"F", "Battery"},
+        {"G", "SSD/HDD"}, {"H", "Speaker"}, {"I", "Heat Sink"}
     };
 }
 
@@ -114,16 +114,17 @@ static void printPartsMenu() {
          << "6. Bottom Cover \n"
          << "7. Touchpad \n"
          << "8. Bezel \n"
-         << "9. Hinge Cover \n"
-         << "0. Cable Kit \n"
-         << "A. DC Plug \n"
-         << "B. Audio Board \n"
-         << "C. NIC \n"
-         << "D. Webcam \n"
-         << "E. Battery \n"
-         << "F. SSD/HDD \n"
-         << "G. Speaker \n"
-         << "H. Heat Sink \n" << "\n";
+            << "9. Hinge Cover \n"
+            << "0. Cable Kit \n"
+            << "A. LCD cable kit \n"
+            << "B. DC Plug \n"
+            << "C. Audio Board \n"
+            << "D. NIC \n"
+            << "E. Webcam \n"
+            << "F. Battery \n"
+            << "G. SSD/HDD \n"
+            << "H. Speaker \n"
+            << "I. Heat Sink \n" << "\n";
 }
 
 static void printTicket(int ticket_number, const string &serial_number, const string &laptop_type, const string &parts_list) {
@@ -171,16 +172,18 @@ static void promptForPartsSelection(const unordered_map<string, string> &partsMa
     parts_list = joinPartsList(uniqueParts);
 }
 
-static void reviewTicketDetails(int &ticket_number, string &serial_number, const string &laptop_type, string &parts_list, const unordered_map<string, string> &partsMap) {
+static void reviewTicketDetails(int &ticket_number, string &serial_number, string &laptop_type, string &parts_list, const unordered_map<string, string> &partsMap) {
     char choice;
+    char letter;
 
     while (true) {
         cout << "Final Check" << "\n"
              << "-----------" << "\n"
              << "1. Adjust Ticket Number" << "\n"
              << "2. Adjust Serial Number" << "\n"
-             << "3. Adjust Parts Needed" << "\n"
-             << "4. Continue" << "\n" << "\n";
+             << "3. Adjust LCD Type" << "\n"
+             << "4. Adjust Parts Needed" << "\n"
+             << "5. Continue" << "\n" << "\n";
 
         if (!promptChar("Select an option: ", choice)) return;
 
@@ -200,10 +203,18 @@ static void reviewTicketDetails(int &ticket_number, string &serial_number, const
                 transform(serial_number.begin(), serial_number.end(), serial_number.begin(), [](unsigned char c) { return toupper(c); });
                 break;
             }
-            case '3':
+            case '3': {
+                if (!promptChar("Is the Laptop touchscreen? (Y/N): ", letter)) {
+                    cout << "LCD type was not changed." << "\n";
+                    break;
+                }
+                laptop_type = chooseLaptopType(letter);
+                break;
+            }
+            case '4':
                 promptForPartsSelection(partsMap, parts_list);
                 break;
-            case '4':
+            case '5':
                 return;
             default:
                 cout << "Invalid selection. Please try again." << "\n";
