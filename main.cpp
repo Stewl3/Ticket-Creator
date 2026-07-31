@@ -139,6 +139,81 @@ static void printTicket(int ticket_number, const string &serial_number, const st
     cout << "ADP*" << "\n" << "\n";
 }
 
+static bool promptForTicketNumber(int &ticket_number) {
+    string ticket_input;
+    cout << "Enter Ticket Number: ";
+    if (!getline(cin, ticket_input)) return false;
+
+    if (ticket_input.empty()) {
+        cout << "Ticket number cannot be empty. Please try again." << "\n" << "\n";
+        return false;
+    }
+
+    if (!parseTicketNumber(ticket_input, ticket_number)) {
+        cout << "Invalid ticket number. Please enter a numeric ticket number." << "\n" << "\n";
+        return false;
+    }
+
+    return true;
+}
+
+static void promptForPartsSelection(const unordered_map<string, string> &partsMap, string &parts_list) {
+    string part_selection;
+    printPartsMenu();
+
+    cout << "Enter the part(s): ";
+    if (!getline(cin, part_selection)) {
+        parts_list.clear();
+        return;
+    }
+
+    vector<string> uniqueParts = parseParts(part_selection, partsMap);
+    parts_list = joinPartsList(uniqueParts);
+}
+
+static void reviewTicketDetails(int &ticket_number, string &serial_number, const string &laptop_type, string &parts_list, const unordered_map<string, string> &partsMap) {
+    char choice;
+
+    while (true) {
+        cout << "Final Check" << "\n"
+             << "-----------" << "\n"
+             << "1. Adjust Ticket Number" << "\n"
+             << "2. Adjust Serial Number" << "\n"
+             << "3. Adjust Parts Needed" << "\n"
+             << "4. Continue" << "\n" << "\n";
+
+        if (!promptChar("Select an option: ", choice)) return;
+
+        switch (choice) {
+            case '1': {
+                if (!promptForTicketNumber(ticket_number)) {
+                    cout << "Ticket number was not changed." << "\n";
+                }
+                break;
+            }
+            case '2': {
+                cout << "Enter Serial Number: ";
+                if (!getline(cin, serial_number)) {
+                    serial_number.clear();
+                    return;
+                }
+                transform(serial_number.begin(), serial_number.end(), serial_number.begin(), [](unsigned char c) { return toupper(c); });
+                break;
+            }
+            case '3':
+                promptForPartsSelection(partsMap, parts_list);
+                break;
+            case '4':
+                return;
+            default:
+                cout << "Invalid selection. Please try again." << "\n";
+                break;
+        }
+
+        printTicket(ticket_number, serial_number, laptop_type, parts_list);
+    }
+}
+
 int main() {
     int ticket_number;
     string ticket_input;
@@ -188,6 +263,7 @@ int main() {
         string parts_list = joinPartsList(uniqueParts);
 
         printTicket(ticket_number, serial_number, laptop_type, parts_list);
+        reviewTicketDetails(ticket_number, serial_number, laptop_type, parts_list, partsMap);
     }
 
     return 0;
