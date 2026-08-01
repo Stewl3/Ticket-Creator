@@ -9,6 +9,7 @@
 #include <unordered_map>
 #include <limits>
 #include <ctime>
+#include <filesystem>
 
 using namespace std;
 
@@ -102,6 +103,151 @@ static string joinPartsList(const vector<string> &parts) {
     return parts_list;
 }
 
+static string getCurrentDateString() {
+    time_t now = time(nullptr);
+    tm *localTime = localtime(&now);
+
+    ostringstream dateStream;
+    dateStream << (localTime->tm_year + 1900) << "-"
+               << setw(2) << setfill('0') << (localTime->tm_mon + 1) << "-"
+               << setw(2) << setfill('0') << localTime->tm_mday;
+    return dateStream.str();
+}
+
+static int getLaptopTypeOrder(const string &laptop_type) {
+    if (laptop_type == "N08933-001") return 0;
+    if (laptop_type == "N08935-001") return 1;
+    return 2;
+}
+
+static string buildTicketBlock(const string &laptop_type, int ticket_number, const string &serial_number, const string &parts_list) {
+    ostringstream block;
+    block << laptop_type << "\n";
+    block << "Service Ticket " << ticket_number << " " << serial_number << " HP Fortis G9 needs - ";
+
+    if (!parts_list.empty()) {
+        block << parts_list << " ";
+    } else {
+        block << "(none) ";
+    }
+
+    block << "ADP*";
+    return block.str();
+}
+
+static vector<string> readTicketBlocks(const string &fileName) {
+    vector<string> blocks;
+    ifstream in(fileName);
+
+    if (!in.is_open()) {
+        return blocks;
+    }
+
+    string line;
+    ostringstream currentBlock;
+
+    while (getline(in, line)) {
+        if (line.empty()) {
+            if (!currentBlock.str().empty()) {
+                blocks.push_back(currentBlock.str());
+                currentBlock.str("");
+                currentBlock.clear();
+            }
+        } else {
+            if (!currentBlock.str().empty()) {
+                currentBlock << "\n";
+            }
+            currentBlock << line;
+        }
+    }
+
+    if (!currentBlock.str().empty()) {
+        blocks.push_back(currentBlock.str());
+    }
+
+    return blocks;
+}
+
+static bool writeTicketBlocks(const string &fileName, const vector<string> &blocks) {
+    ofstream out(fileName, ios::trunc);
+
+    if (!out.is_open()) {
+        cout << "Unable to save ticket to " << fileName << "." << "\n";
+        return false;
+    }
+
+    for (size_t i = 0; i < blocks.size(); ++i) {
+        if (i > 0) {
+            out << "\n\n";
+        }
+        out << blocks[i];
+    }
+
+    out.close();
+    return true;
+}
+
+static bool saveTicketToFile(const string &laptop_type, int ticket_number, const string &serial_number, const string &parts_list) {
+    string folderName = "output/Tickets";
+    string fileName = folderName + "/" + getCurrentDateString() + ".txt";
+
+    if (!filesystem::exists(folderName)) {
+        filesystem::create_directories(folderName);
+    }
+
+    vector<string> blocks = readTicketBlocks(fileName);
+    blocks.push_back(buildTicketBlock(laptop_type, ticket_number, serial_number, parts_list));
+
+    stable_sort(blocks.begin(), blocks.end(), [&](const string &a, const string &b) {
+        const string firstLineA = a.substr(0, a.find('\n'));
+        const string firstLineB = b.substr(0, b.find('\n'));
+        return getLaptopTypeOrder(firstLineA) < getLaptopTypeOrder(firstLineB);
+    });
+
+    if (!writeTicketBlocks(fileName, blocks)) {
+        return false;
+    }
+
+    cout << "\nTicket saved to " << fileName << "\n";
+    return true;
+}
+
+static void printSavedTickets() {
+    const string baseFolder = "output/Tickets";
+
+    if (!filesystem::exists(baseFolder)) {
+        cout << "No saved tickets found yet." << "\n";
+        return;
+    }
+
+    vector<filesystem::path> files;
+    for (const auto &entry : filesystem::directory_iterator(baseFolder)) {
+        if (entry.is_regular_file()) {
+            files.push_back(entry.path());
+        }
+    }
+
+    sort(files.begin(), files.end());
+
+    if (files.empty()) {
+        cout << "No saved tickets found yet." << "\n";
+        return;
+    }
+
+    cout << "\nSaved Tickets" << "\n"
+         << "------------" << "\n";
+
+    for (const auto &file : files) {
+        cout << file.filename().string() << "\n";
+        ifstream in(file);
+        string line;
+        while (getline(in, line)) {
+            cout << "  " << line << "\n";
+        }
+        cout << "\n";
+    }
+}
+
 static void printPartsMenu() {
     cout << "\nWhat parts are needed?\n"
          << "----------------------\n";
@@ -183,7 +329,8 @@ static void reviewTicketDetails(int &ticket_number, string &serial_number, strin
              << "2. Adjust Serial Number" << "\n"
              << "3. Adjust LCD Type" << "\n"
              << "4. Adjust Parts Needed" << "\n"
-             << "5. Continue" << "\n" << "\n";
+             << "5. Continue" << "\n"
+             << "6. View Saved Tickets" << "\n" << "\n";
 
         if (!promptChar("Select an option: ", choice)) return;
 
@@ -215,7 +362,11 @@ static void reviewTicketDetails(int &ticket_number, string &serial_number, strin
                 promptForPartsSelection(partsMap, parts_list);
                 break;
             case '5':
+                saveTicketToFile(laptop_type, ticket_number, serial_number, parts_list);
                 return;
+            case '6':
+                printSavedTickets();
+                break;
             default:
                 cout << "Invalid selection. Please try again." << "\n";
                 break;
@@ -238,7 +389,7 @@ int main() {
     printHeader();
 
     while (true) {
-        if (!promptLine("Enter Ticket Number (Exit/Quit to end): ", ticket_input)) break;
+        if (!promptLine("\nEnter Ticket Number (View to see saved tickets, Exit/Quit to end): ", ticket_input)) break;
 
         if (isExitCommand(ticket_input)) {
             cout << "Exiting ticket creator." << "\n";
@@ -247,6 +398,12 @@ int main() {
 
         if (ticket_input.empty()) {
             cout << "Ticket number cannot be empty. Please try again." << "\n" << "\n";
+            continue;
+        }
+
+        if (ticket_input == "view" || ticket_input == "show") {
+            printSavedTickets();
+            cout << "\n";
             continue;
         }
 
@@ -280,5 +437,4 @@ int main() {
     return 0;
 }
 
-// output to txt file stored in the appropriate folder
-// make sure the txt file is named with the proper date
+// output to one txt file per day, named with the current date
