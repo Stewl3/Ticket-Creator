@@ -114,6 +114,79 @@ static string getCurrentDateString() {
     return dateStream.str();
 }
 
+static string getCurrentYearString() {
+    time_t now = time(nullptr);
+    tm *localTime = localtime(&now);
+
+    ostringstream yearStream;
+    yearStream << (localTime->tm_year + 1900);
+    return yearStream.str();
+}
+
+static bool isValidDateFormat(const string &date) {
+    if (date.empty()) return false;
+
+    string normalized = date;
+    replace(normalized.begin(), normalized.end(), '/', '-');
+
+    if (normalized.size() == 5) {
+        if (normalized[2] != '-') return false;
+        for (size_t i = 0; i < normalized.size(); ++i) {
+            if (i == 2) continue;
+            if (!isdigit(static_cast<unsigned char>(normalized[i]))) return false;
+        }
+        return true;
+    }
+
+    if (normalized.size() == 10) {
+        if (normalized[2] != '-' || normalized[5] != '-') return false;
+        for (size_t i = 0; i < normalized.size(); ++i) {
+            if (i == 2 || i == 5) continue;
+            if (!isdigit(static_cast<unsigned char>(normalized[i]))) return false;
+        }
+        return true;
+    }
+
+    return false;
+}
+
+static string normalizeDateToFileName(const string &date) {
+    string normalized = date;
+    replace(normalized.begin(), normalized.end(), '/', '-');
+
+    if (normalized.size() == 5) {
+        return getCurrentYearString() + "-" + normalized.substr(0, 2) + "-" + normalized.substr(3, 2) + ".txt";
+    }
+
+    if (normalized.size() == 10) {
+        return normalized.substr(6, 4) + "-" + normalized.substr(0, 2) + "-" + normalized.substr(3, 2) + ".txt";
+    }
+
+    return normalized + ".txt";
+}
+
+static void printTicketFileByPath(const string &filePath) {
+    if (!filesystem::exists(filePath)) {
+        cout << "No saved tickets found for that date." << "\n";
+        return;
+    }
+
+    ifstream in(filePath);
+    if (!in.is_open()) {
+        cout << "Unable to open saved tickets for that date." << "\n";
+        return;
+    }
+
+    cout << "\nSaved Tickets - " << filesystem::path(filePath).filename().string() << "\n"
+         << "------------" << "\n";
+
+    string line;
+    while (getline(in, line)) {
+        cout << line << "\n";
+    }
+    cout << "\n";
+}
+
 static int getLaptopTypeOrder(const string &laptop_type) {
     if (laptop_type == "N08933-001") return 0;
     if (laptop_type == "N08935-001") return 1;
@@ -212,7 +285,7 @@ static bool saveTicketToFile(const string &laptop_type, int ticket_number, const
     return true;
 }
 
-static void printSavedTickets() {
+static void viewSavedTickets() {
     const string baseFolder = "output/Tickets";
 
     if (!filesystem::exists(baseFolder)) {
@@ -220,32 +293,44 @@ static void printSavedTickets() {
         return;
     }
 
-    vector<filesystem::path> files;
-    for (const auto &entry : filesystem::directory_iterator(baseFolder)) {
-        if (entry.is_regular_file()) {
-            files.push_back(entry.path());
-        }
-    }
+    cout << "\nView Saved Tickets" << "\n"
+         << "-----------------" << "\n"
+         << "1. View today's tickets" << "\n"
+         << "2. Search by date" << "\n"
+         << "3. Cancel" << "\n" << "\n";
 
-    sort(files.begin(), files.end());
+    string choiceInput;
+    if (!promptLine("Select an option: ", choiceInput)) return;
+    transform(choiceInput.begin(), choiceInput.end(), choiceInput.begin(), [](unsigned char c) { return tolower(c); });
 
-    if (files.empty()) {
-        cout << "No saved tickets found yet." << "\n";
+    if (choiceInput == "1" || choiceInput == "today" || choiceInput == "t") {
+        printTicketFileByPath(baseFolder + "/" + getCurrentDateString() + ".txt");
         return;
     }
 
-    cout << "\nSaved Tickets" << "\n"
-         << "------------" << "\n";
+    if (choiceInput == "2" || choiceInput == "date" || choiceInput == "d" || choiceInput == "search") {
+        string dateInput;
+        while (true) {
+            cout << "Enter date (MM-DD or MM-DD-YYYY): ";
+            if (!getline(cin, dateInput)) return;
 
-    for (const auto &file : files) {
-        cout << file.filename().string() << "\n";
-        ifstream in(file);
-        string line;
-        while (getline(in, line)) {
-            cout << "  " << line << "\n";
+            if (dateInput.empty()) {
+                cout << "Date cannot be empty." << "\n";
+                continue;
+            }
+
+            if (!isValidDateFormat(dateInput)) {
+                cout << "Invalid date format. Please use MM-DD or MM-DD-YYYY." << "\n";
+                continue;
+            }
+
+            string fileName = normalizeDateToFileName(dateInput);
+            printTicketFileByPath(baseFolder + "/" + fileName);
+            return;
         }
-        cout << "\n";
     }
+
+    cout << "View canceled." << "\n";
 }
 
 static void printPartsMenu() {
@@ -365,7 +450,7 @@ static void reviewTicketDetails(int &ticket_number, string &serial_number, strin
                 saveTicketToFile(laptop_type, ticket_number, serial_number, parts_list);
                 return;
             case '6':
-                printSavedTickets();
+                viewSavedTickets();
                 break;
             default:
                 cout << "Invalid selection. Please try again." << "\n";
@@ -402,7 +487,7 @@ int main() {
         }
 
         if (ticket_input == "view" || ticket_input == "show") {
-            printSavedTickets();
+            viewSavedTickets();
             cout << "\n";
             continue;
         }
