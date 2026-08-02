@@ -392,7 +392,7 @@ static bool promptForTicketNumber(int &ticket_number) {
 static void promptForPartsSelection(const unordered_map<string, string> &partsMap, string &parts_list) {
     string part_selection;
     printPartsMenu();
-
+ 
     cout << "Enter the part(s): ";
     if (!getline(cin, part_selection)) {
         parts_list.clear();
