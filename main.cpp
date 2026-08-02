@@ -365,7 +365,7 @@ static void viewSavedTickets() {
     }
 
     cout << "\nView Saved Tickets" << "\n"
-         << "-----------------" << "\n"
+         << "------------------" << "\n"
          << "1. View today's tickets" << "\n"
          << "2. Search by date" << "\n"
          << "3. View all saved tickets" << "\n"
@@ -492,7 +492,7 @@ static void reviewTicketDetails(int &ticket_number, string &serial_number, strin
              << "2. Adjust Serial Number" << "\n"
              << "3. Adjust LCD Type" << "\n"
              << "4. Adjust Parts Needed" << "\n"
-             << "5. Continue" << "\n"
+             << "5. Save Ticket To File" << "\n"
              << "6. View Saved Tickets" << "\n" << "\n";
 
         if (!promptChar("Select an option: ", choice)) return;
@@ -571,7 +571,7 @@ int main() {
         }
 
         if (!parseTicketNumber(ticket_input, ticket_number)) {
-            cout << "Invalid ticket number. Please enter a numeric ticket number or type exit/quit." << "\n" << "\n";
+            cout << "Invalid ticket number. Please enter a numeric ticket number or type 'View' To view tickets." << "\n" << "\n";
             continue;
         }
 
@@ -599,5 +599,3 @@ int main() {
 
     return 0;
 }
-
-// output to one txt file per day, named with the current date
