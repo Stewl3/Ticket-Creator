@@ -474,7 +474,7 @@ int main() {
     printHeader();
 
     while (true) {
-        if (!promptLine("\nEnter Ticket Number (View to see saved tickets, Exit/Quit to end): ", ticket_input)) break;
+        if (!promptLine("\nEnter Ticket Number ('View' to see saved tickets): ", ticket_input)) break;
 
         if (isExitCommand(ticket_input)) {
             cout << "Exiting ticket creator." << "\n";
