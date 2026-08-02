@@ -19,7 +19,7 @@ static unordered_map<string, string> getPartsMap() {
         {"5", "Top Cover"}, {"6", "Bottom Cover"}, {"7", "Touchpad"}, {"8", "Bezel"},
         {"9", "Hinge Cover"}, {"0", "Cable Kit"}, {"A", "LCD cable kit"}, {"B", "DC Plug"},
         {"C", "Audio Board"}, {"D", "NIC"}, {"E", "Webcam"}, {"F", "Battery"},
-        {"G", "SSD/HDD"}, {"H", "Speaker"}, {"I", "Heat Sink"}
+        {"G", "SSD/HDD"}, {"H", "Speaker"}, {"I", "Heat Sink"}, {"J", "Screw Kit"}
     };
 }
 
@@ -178,13 +178,84 @@ static void printTicketFileByPath(const string &filePath) {
     }
 
     cout << "\nSaved Tickets - " << filesystem::path(filePath).filename().string() << "\n"
-         << "------------" << "\n";
+         << "------------------------------" << "\n";
 
     string line;
     while (getline(in, line)) {
         cout << line << "\n";
     }
     cout << "\n";
+}
+
+static vector<string> getSortedTicketFiles(const string &baseFolder) {
+    vector<string> files;
+
+    if (!filesystem::exists(baseFolder)) {
+        return files;
+    }
+
+    for (const auto &entry : filesystem::directory_iterator(baseFolder)) {
+        if (entry.is_regular_file() && entry.path().extension() == ".txt") {
+            files.push_back(entry.path().string());
+        }
+    }
+
+    sort(files.begin(), files.end(), [](const string &a, const string &b) {
+        return filesystem::path(a).filename().string() < filesystem::path(b).filename().string();
+    });
+
+    return files;
+}
+
+static void viewAllSavedTickets(const string &baseFolder) {
+    vector<string> ticketFiles = getSortedTicketFiles(baseFolder);
+
+    if (ticketFiles.empty()) {
+        cout << "No saved tickets found yet." << "\n";
+        return;
+    }
+
+    cout << "\nSaved Ticket Files" << "\n"
+         << "------------------" << "\n";
+
+    for (size_t i = 0; i < ticketFiles.size(); ++i) {
+        cout << (i + 1) << ". " << filesystem::path(ticketFiles[i]).filename().string() << "\n";
+    }
+
+    const int cancelChoice = static_cast<int>(ticketFiles.size()) + 1;
+    cout << cancelChoice << ". Cancel" << "\n" << "\n";
+
+    while (true) {
+        string choiceInput;
+        if (!promptLine("Select a file to open: ", choiceInput)) return;
+
+        if (choiceInput.empty()) {
+            cout << "Please enter a selection." << "\n";
+            continue;
+        }
+
+        transform(choiceInput.begin(), choiceInput.end(), choiceInput.begin(), [](unsigned char c) { return tolower(c); });
+
+        if (choiceInput == "cancel" || choiceInput == "c") {
+            cout << "View canceled." << "\n";
+            return;
+        }
+
+        try {
+            int choice = stoi(choiceInput);
+            if (choice == cancelChoice) {
+                cout << "View canceled." << "\n";
+                return;
+            }
+            if (choice >= 1 && choice <= static_cast<int>(ticketFiles.size())) {
+                printTicketFileByPath(ticketFiles[choice - 1]);
+                return;
+            }
+        } catch (...) {
+        }
+
+        cout << "Invalid selection. Please try again." << "\n";
+    }
 }
 
 static int getLaptopTypeOrder(const string &laptop_type) {
@@ -297,7 +368,8 @@ static void viewSavedTickets() {
          << "-----------------" << "\n"
          << "1. View today's tickets" << "\n"
          << "2. Search by date" << "\n"
-         << "3. Cancel" << "\n" << "\n";
+         << "3. View all saved tickets" << "\n"
+         << "4. Cancel" << "\n" << "\n";
 
     string choiceInput;
     if (!promptLine("Select an option: ", choiceInput)) return;
@@ -330,6 +402,11 @@ static void viewSavedTickets() {
         }
     }
 
+    if (choiceInput == "3" || choiceInput == "all" || choiceInput == "a") {
+        viewAllSavedTickets(baseFolder);
+        return;
+    }
+
     cout << "View canceled." << "\n";
 }
 
@@ -345,17 +422,18 @@ static void printPartsMenu() {
          << "6. Bottom Cover \n"
          << "7. Touchpad \n"
          << "8. Bezel \n"
-            << "9. Hinge Cover \n"
-            << "0. Cable Kit \n"
-            << "A. LCD cable kit \n"
-            << "B. DC Plug \n"
-            << "C. Audio Board \n"
-            << "D. NIC \n"
-            << "E. Webcam \n"
-            << "F. Battery \n"
-            << "G. SSD/HDD \n"
-            << "H. Speaker \n"
-            << "I. Heat Sink \n" << "\n";
+         << "9. Hinge Cover \n"
+         << "0. Cable Kit \n"
+         << "A. LCD cable kit \n"
+         << "B. DC Plug \n"
+         << "C. Audio Board \n"
+         << "D. NIC \n"
+         << "E. Webcam \n"
+         << "F. Battery \n"
+         << "G. SSD/HDD \n"
+         << "H. Speaker \n"
+         << "I. Heat Sink \n"
+         << "J. Screw Kit \n" << "\n";
 }
 
 static void printTicket(int ticket_number, const string &serial_number, const string &laptop_type, const string &parts_list) {

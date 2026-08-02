@@ -1,2 +1,8 @@
 N08933-001
 Service Ticket 804561 5CG32464BC HP Fortis G9 needs - Touchscreen, Bezel ADP*
+
+N08933-001
+Service Ticket 804562 5CG3393BH0 HP Fortis G9 needs - Touchscreen, Bottom Cover, Bezel, LCD cable kit ADP*
+
+N08935-001
+Service Ticket 999999 5CG1234ABC HP Fortis G9 needs - Screw Kit ADP*
