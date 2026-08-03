@@ -178,13 +178,13 @@ static void printTicketFileByPath(const string &filePath) {
     }
 
     cout << "\nSaved Tickets - " << filesystem::path(filePath).filename().string() << "\n"
-         << "------------------------------" << "\n";
+         << "------------------------------" << "\n" << "\n";
 
     string line;
     while (getline(in, line)) {
         cout << line << "\n";
     }
-    cout << "\n";
+    cout << "\n" << "------------------------------";
 }
 
 static vector<string> getSortedTicketFiles(const string &baseFolder) {
