@@ -564,7 +564,7 @@ int main() {
             continue;
         }
 
-        if (ticket_input == "view" || ticket_input == "show") {
+        if (ticket_input == "view" || ticket_input == "View" || ticket_input == "VIEW" || ticket_input == "show") {
             viewSavedTickets();
             cout << "\n";
             continue;
