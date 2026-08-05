@@ -21,19 +21,15 @@ void TicketCreator::run() {
     while (true) {
         Helpers::clearScreen();
         Helpers::printCreatorHeader();
-
+        
         if (!Helpers::promptLine("\nEnter Ticket Number ('View' for saved tickets or 'Esc' for Main Menu): ", ticket_input)) break;
-
-        if (Helpers::isExitCommand(ticket_input)) {
-            cout << "Exiting ticket creator." << "\n";
-            break;
-        }
-
+        
         if (ticket_input.empty()) {
             cout << "Ticket number cannot be empty. Please try again." << "\n" << "\n";
             continue;
         }
-
+        
+        
         string lower = ticket_input;
         transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return tolower(c); });
         if (lower == "view" || lower == "show") {

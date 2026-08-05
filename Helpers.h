@@ -7,7 +7,6 @@
 namespace Helpers {
     std::unordered_map<std::string, std::string> getPartsMap();
     bool promptLine(const std::string &prompt, std::string &out);
-    bool isExitCommand(const std::string &input);
     bool parseTicketNumber(const std::string &input, int &ticket_number);
     bool promptChar(const std::string &prompt, char &out);
     bool promptMenuChar(const std::string &prompt, char &out);

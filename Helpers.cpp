@@ -70,12 +70,6 @@ namespace Helpers {
 #endif
     }
 
-    bool isExitCommand(const string &input) {
-        string lower = input;
-        transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return tolower(c); });
-        return (lower == "exit" || lower == "quit");
-    }
-
     bool parseTicketNumber(const string &input, int &ticket_number) {
         try {
             ticket_number = stoi(input);
