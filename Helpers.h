@@ -21,7 +21,6 @@ namespace Helpers {
     std::string getCurrentYearString();
     bool isValidDateFormat(const std::string &date);
     std::string normalizeDateToFileName(const std::string &date);
-    void printTicketFileByPath(const std::string &filePath);
     bool manageTicketDocument(const std::string &filePath);
     std::vector<std::string> getSortedTicketFiles(const std::string &baseFolder);
     std::vector<std::string> readTicketBlocks(const std::string &fileName);

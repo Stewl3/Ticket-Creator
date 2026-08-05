@@ -1,6 +1,5 @@
 #include "TicketCreator.h"
 #include "Helpers.h"
-#include "TicketViewer.h"
 
 #include <iostream>
 #include <sstream>

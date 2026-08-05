@@ -370,28 +370,6 @@ namespace Helpers {
         return true;
     }
 
-    void printTicketFileByPath(const string &filePath) {
-        if (!filesystem::exists(filePath)) {
-            cout << "No saved tickets found for that date." << "\n";
-            return;
-        }
-
-        ifstream in(filePath);
-        if (!in.is_open()) {
-            cout << "Unable to open saved tickets for that date." << "\n";
-            return;
-        }
-
-        cout << "\nSaved Tickets - " << filesystem::path(filePath).filename().string() << "\n"
-             << "------------------------------" << "\n" << "\n";
-
-        string line;
-        while (getline(in, line)) {
-            cout << line << "\n";
-        }
-        cout << "\n" << "------------------------------";
-    }
-
     bool manageTicketDocument(const string &filePath) {
         if (!filesystem::exists(filePath)) {
             cout << "No saved tickets found for that date." << "\n";
@@ -855,7 +833,7 @@ namespace Helpers {
                              << "---------------" << "\n";
                              std::this_thread::sleep_for(std::chrono::milliseconds(300));
                             }
-                            
+
                     matchCount++;
                     cout << "(" << matchCount << ") " << "Found in "; 
                     cout << filesystem::path(filePath).filename().string() << ":\n\n";
