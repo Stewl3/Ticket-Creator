@@ -13,20 +13,21 @@ void MainMenu::run() {
     while (true) {
         Helpers::clearScreen();
         cout << "----------------------------------------------" << "\n";
-        cout << "-----------------  Main Menu  ----------------" << "\n";
+        cout << "--------------  Ticket Manager  --------------" << "\n";
         cout << "----------------------------------------------" << "\n\n";
 
-        cout << "1. Ticket Creator\n";
-        cout << "2. Ticket Viewer\n";
-        cout << "3. Exit\n\n";
+        cout << "                  Main Menu    \n"
+             << "             -------------------\n";
+
+        cout << "              1. Ticket Creator\n";
+        cout << "              2. Ticket Viewer\n";
+        cout << "              3. Exit\n\n";
 
         char sel;
-        if (!Helpers::promptMenuChar("Select an option ", sel)) {
-            // input error — redraw menu
+        if (!Helpers::promptMenuChar("", sel)) {
             continue;
         }
         if (sel == 27) {
-            // ESC pressed — re-display main menu
             continue;
         }
 
