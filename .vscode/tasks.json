@@ -10,6 +10,10 @@
         "-Wextra",
         "-g3",
         "main.cpp",
+        "MainMenu.cpp",
+        "TicketCreator.cpp",
+        "TicketViewer.cpp",
+        "Helpers.cpp",
         "-o",
         "output/main.exe"
       ],

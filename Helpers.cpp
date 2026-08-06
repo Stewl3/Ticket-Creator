@@ -374,17 +374,6 @@ namespace Helpers {
         return true;
     }
 
-    static bool promptEditField(const string &prompt, const string &currentValue, string &out) {
-        cout << prompt << " [" << currentValue << "] ";
-        if (!getline(cin, out)) {
-            return false;
-        }
-        if (out.empty()) {
-            out = currentValue;
-        }
-        return true;
-    }
-
     bool manageTicketDocument(const string &filePath) {
         if (!filesystem::exists(filePath)) {
             cout << "No saved tickets found for that date." << "\n";

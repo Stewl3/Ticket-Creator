@@ -22,7 +22,8 @@ void TicketCreator::run() {
         Helpers::clearScreen();
         Helpers::printCreatorHeader();
         
-        if (!Helpers::promptLine("\nEnter Ticket Number ('View' for saved tickets or 'Esc' for Main Menu): ", ticket_input)) break;
+        if (!Helpers::promptLine("\nEnter Ticket Number ('View' for saved tickets or 'Esc' for Main Menu): \n", ticket_input)) break;
+
         
         if (ticket_input.empty()) {
             cout << "Ticket number cannot be empty. Please try again." << "\n" << "\n";
