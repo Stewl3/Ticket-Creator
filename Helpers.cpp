@@ -200,7 +200,7 @@ namespace Helpers {
     }
 
     string chooseLaptopType(char touchscreenLetter) {
-        return (touchscreenLetter == 'Y') ? "N08933-001" : "N08935-001";
+        return (touchscreenLetter == 'Y') ? "LCD N08933-001" : "LCD N08935-001";
     }
 
     vector<string> parseParts(const string &rawInput, const unordered_map<string, string> &partsMap) {
@@ -520,7 +520,7 @@ namespace Helpers {
                     }
 
                     if (reviewChoice == "3") {
-                        char currentTouchscreen = (newLaptopType == "N08933-001") ? 'Y' : 'N';
+                        char currentTouchscreen = (newLaptopType == "LCD N08933-001") ? 'Y' : 'N';
                         string touchscreenInput;
                         if (!promptLine("Is the Laptop touchscreen? (Y/N): ", touchscreenInput)) {
                             cout << "LCD type was not changed." << "\n";
