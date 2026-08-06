@@ -14,11 +14,23 @@
 #include <chrono>
 #ifdef _WIN32
 #include <conio.h>
+#include <windows.h>
 #endif
 
 using namespace std;
 
 namespace Helpers {
+
+#ifdef _WIN32
+    void setCursorVisibility(bool visible) {
+        HANDLE consoleHandle = GetStdHandle(STD_OUTPUT_HANDLE);
+        CONSOLE_CURSOR_INFO cursorInfo;
+        if (GetConsoleCursorInfo(consoleHandle, &cursorInfo)) {
+            cursorInfo.bVisible = visible;
+            SetConsoleCursorInfo(consoleHandle, &cursorInfo);
+        }
+    }
+#endif
 
     unordered_map<string, string> getPartsMap() {
         return {
@@ -31,6 +43,9 @@ namespace Helpers {
     }
 
     bool promptLine(const string &prompt, string &out) {
+#ifdef _WIN32
+        setCursorVisibility(true);
+#endif
         cout << prompt;
         out.clear();
 
@@ -80,6 +95,9 @@ namespace Helpers {
     }
 
     bool promptChar(const string &prompt, char &out) {
+#ifdef _WIN32
+        setCursorVisibility(true);
+#endif
         cout << prompt;
 
 #ifdef _WIN32
@@ -109,6 +127,9 @@ namespace Helpers {
     }
 
     bool promptMenuChar(const string &prompt, char &out) {
+#ifdef _WIN32
+        setCursorVisibility(false);
+#endif
         cout << prompt;
 
 #ifdef _WIN32
@@ -469,48 +490,97 @@ namespace Helpers {
                     continue;
                 }
 
-                cout << "\nCurrent ticket:\n" << blocks[index] << "\n";
-                string newTicketNumberInput;
-                if (!promptEditField("Enter Ticket Number", to_string(existingNumber), newTicketNumberInput)) return false;
-                int newTicketNumber;
-                if (!parseTicketNumber(newTicketNumberInput, newTicketNumber)) {
-                    cout << "Invalid ticket number." << "\n";
-                    continue;
+
+                int newTicketNumber = existingNumber;
+                string newSerial = existingSerial;
+                string newLaptopType = existingLaptopType;
+                string newPartsList = existingParts;
+
+                while (true) {
+                    string draftBlock = buildTicketBlock(newLaptopType, newTicketNumber, newSerial, newPartsList);
+                    cout << "\nCurrent Ticket" << "\n"
+                         << "----------------" << "\n"
+                         << draftBlock << "\n\n";
+                    cout << "1. Adjust Ticket Number" << "\n"
+                         << "2. Adjust Serial Number" << "\n"
+                         << "3. Adjust LCD Type" << "\n"
+                         << "4. Adjust Parts Needed" << "\n"
+                         << "5. Save Edited Ticket" << "\n"
+                         << "6. Cancel" << "\n" << "\n";
+
+                    string reviewChoice;
+                    if (!promptLine("Select an option: ", reviewChoice)) return false;
+                    transform(reviewChoice.begin(), reviewChoice.end(), reviewChoice.begin(), [](unsigned char c) { return tolower(c); });
+
+                    if (reviewChoice == "1") {
+                        if (!promptForTicketNumber(newTicketNumber)) {
+                            cout << "Ticket number was not changed." << "\n";
+                        }
+                        continue;
+                    }
+
+                    if (reviewChoice == "2") {
+                        string updatedSerial;
+                        if (!promptLine("Enter Serial Number: ", updatedSerial)) {
+                            cout << "Serial number was not changed." << "\n";
+                        } else {
+                            transform(updatedSerial.begin(), updatedSerial.end(), updatedSerial.begin(), [](unsigned char c) { return toupper(c); });
+                            newSerial = updatedSerial;
+                        }
+                        continue;
+                    }
+
+                    if (reviewChoice == "3") {
+                        char currentTouchscreen = (newLaptopType == "N08933-001") ? 'Y' : 'N';
+                        string touchscreenInput;
+                        if (!promptLine("Is the Laptop touchscreen? (Y/N): ", touchscreenInput)) {
+                            cout << "LCD type was not changed." << "\n";
+                        } else {
+                            char touchscreenChoice = touchscreenInput.empty() ? currentTouchscreen : toupper(static_cast<unsigned char>(touchscreenInput[0]));
+                            newLaptopType = chooseLaptopType(touchscreenChoice);
+                        }
+                        continue;
+                    }
+
+                    if (reviewChoice == "4") {
+                        cout << "\nCurrent parts: " << (newPartsList.empty() ? "(none)" : newPartsList) << "\n";
+                        printPartsMenu();
+                        string partSelection;
+                        if (!promptLine("Enter the part(s) (leave blank to keep current): ", partSelection)) {
+                            cout << "Parts were not changed." << "\n";
+                        } else if (!partSelection.empty()) {
+                            vector<string> newParts = parseParts(partSelection, getPartsMap());
+                            newPartsList = joinPartsList(newParts);
+                        }
+                        continue;
+                    }
+
+                    if (reviewChoice == "5") {
+                        blocks[index] = buildTicketBlock(newLaptopType, newTicketNumber, newSerial, newPartsList);
+                        stable_sort(blocks.begin(), blocks.end(), [&](const string &a, const string &b) {
+                            const string firstLineA = a.substr(0, a.find('\n'));
+                            const string firstLineB = b.substr(0, b.find('\n'));
+                            return getLaptopTypeOrder(firstLineA) < getLaptopTypeOrder(firstLineB);
+                        });
+
+                        if (!writeTicketBlocks(filePath, blocks)) {
+                            return false;
+                        }
+                        cout << "Ticket updated successfully." << "\n";
+                        string returnInput;
+                        if (!promptLine("Press Enter to return to the document... ", returnInput)) {
+                            return false;
+                        }
+                        break;
+                    }
+
+                    if (reviewChoice == "6" || reviewChoice == "cancel" || reviewChoice == "c") {
+                        cout << "Edit canceled." << "\n";
+                        break;
+                    }
+
+                    cout << "Invalid selection. Please try again." << "\n";
                 }
-
-                string newSerial;
-                if (!promptEditField("Enter Serial Number", existingSerial, newSerial)) return false;
-                transform(newSerial.begin(), newSerial.end(), newSerial.begin(), [](unsigned char c) { return toupper(c); });
-
-                char currentTouchscreen = (existingLaptopType == "N08933-001") ? 'Y' : 'N';
-                string touchscreenInput;
-                if (!promptEditField("Is the Laptop touchscreen? (Y/N)", string(1, currentTouchscreen), touchscreenInput)) return false;
-                char touchscreenChoice = touchscreenInput.empty() ? currentTouchscreen : toupper(static_cast<unsigned char>(touchscreenInput[0]));
-                string newLaptopType = chooseLaptopType(touchscreenChoice);
-
-                cout << "\nCurrent parts: " << existingParts << "\n";
-                printPartsMenu();
-                string newPartSelection;
-                if (!promptLine("Enter the part(s) (leave blank to keep current): ", newPartSelection)) return false;
-                string newPartsList;
-                if (newPartSelection.empty()) {
-                    newPartsList = existingParts;
-                } else {
-                    vector<string> newParts = parseParts(newPartSelection, getPartsMap());
-                    newPartsList = joinPartsList(newParts);
-                }
-
-                blocks[index] = buildTicketBlock(newLaptopType, newTicketNumber, newSerial, newPartsList);
-                stable_sort(blocks.begin(), blocks.end(), [&](const string &a, const string &b) {
-                    const string firstLineA = a.substr(0, a.find('\n'));
-                    const string firstLineB = b.substr(0, b.find('\n'));
-                    return getLaptopTypeOrder(firstLineA) < getLaptopTypeOrder(firstLineB);
-                });
-
-                if (!writeTicketBlocks(filePath, blocks)) {
-                    return false;
-                }
-                cout << "Ticket updated." << "\n";
                 continue;
             }
 

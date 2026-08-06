@@ -130,11 +130,16 @@ void TicketCreator::run() {
                     }
                     break;
                 }
-                case '5':
+                case '5': {
                     Helpers::saveTicketToFile(laptop_type, ticket_number, serial_number, parts_list);
+                    string continueInput;
+                    Helpers::promptLine("\nPress Enter to add another ticket... ", continueInput);
                     goto next_ticket;
+                }
                 case '6': {
                     cout << "Ticket will not be saved." << "\n";
+                    string continueInput;
+                    Helpers::promptLine("\nPress Enter to add another ticket... ", continueInput);
                     goto next_ticket;
                 }
                 default:

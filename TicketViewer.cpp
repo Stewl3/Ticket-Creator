@@ -26,7 +26,7 @@ void TicketViewer::run() {
              << "4. Search by ticket number" << "\n\n";
 
         char sel;
-        if (!Helpers::promptMenuChar("Select an option ", sel)) {
+        if (!Helpers::promptMenuChar("", sel)) {
             // input error — re-display viewer menu
             continue;
         }
