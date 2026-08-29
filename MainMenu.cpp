@@ -2,6 +2,7 @@
 #include "Helpers.h"
 #include "TicketCreator.h"
 #include "TicketViewer.h"
+#include "ExtraPartsTracker.h"
 
 #include <chrono>
 #include <iostream>
@@ -13,7 +14,7 @@ void MainMenu::run() {
     while (true) {
         Helpers::clearScreen();
         cout << "----------------------------------------------" << "\n";
-        cout << "--------------  Ticket Manager  --------------" << "\n";
+        cout << "----------------  TicketCore  ----------------" << "\n";
         cout << "----------------------------------------------" << "\n\n";
 
         cout << "                  Main Menu    \n"
@@ -21,7 +22,8 @@ void MainMenu::run() {
 
         cout << "              1. Ticket Creator\n";
         cout << "              2. Ticket Viewer\n";
-        cout << "              3. Exit\n\n";
+        cout << "              3. Extra Parts Tracker\n";
+        cout << "              4. Exit\n\n";
 
         char sel;
         if (!Helpers::promptMenuChar("", sel)) {
@@ -43,12 +45,18 @@ void MainMenu::run() {
                 break;
             }
             case '3': {
+                ExtraPartsTracker tracker;
+                tracker.run();
+                break;
+            }
+            case '4': {
                 cout << "Goodbye." << "\n";
                 this_thread::sleep_for(chrono::milliseconds(500));
                 return;
             }
             default: {
                 cout << "Invalid selection." << "\n";
+                this_thread::sleep_for(chrono::milliseconds(500));
                 break;
             }
         }

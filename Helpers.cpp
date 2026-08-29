@@ -244,6 +244,176 @@ namespace Helpers {
         return parts_list;
     }
 
+    unordered_map<string, int> parsePartsWithQuantities(const string &rawInput, const unordered_map<string, string> &partsMap) {
+        string s = rawInput;
+        for (char &c : s) {
+            if (c == ',') c = ' ';
+            c = toupper((unsigned char)c);
+        }
+
+        unordered_map<string, int> partQuantities;
+        string token;
+        stringstream ss(s);
+        
+        while (ss >> token) {
+            size_t xPos = token.find('X');
+            
+            if (xPos != string::npos) {
+                // Format: "1X2" or "AX5" (code x quantity)
+                string codeStr = token.substr(0, xPos);
+                string quantityStr = token.substr(xPos + 1);
+                
+                try {
+                    int quantity = stoi(quantityStr);
+                    
+                    if (codeStr.size() == 1) {
+                        auto it = partsMap.find(codeStr);
+                        if (it != partsMap.end()) {
+                            partQuantities[it->second] += quantity;
+                        }
+                    } else {
+                        for (char c : codeStr) {
+                            string key(1, c);
+                            auto it = partsMap.find(key);
+                            if (it != partsMap.end()) {
+                                partQuantities[it->second] += quantity;
+                            }
+                        }
+                    }
+                } catch (...) {
+                    continue;
+                }
+            } else {
+                // Format: "1" or "ABC" (code only, quantity = 1)
+                if (token.size() == 1) {
+                    auto it = partsMap.find(token);
+                    if (it != partsMap.end()) {
+                        partQuantities[it->second] += 1;
+                    }
+                } else {
+                    for (char c : token) {
+                        string key(1, c);
+                        auto it = partsMap.find(key);
+                        if (it != partsMap.end()) {
+                            partQuantities[it->second] += 1;
+                        }
+                    }
+                }
+            }
+        }
+        
+        return partQuantities;
+    }
+
+    unordered_map<string, int> loadExtraPartsFromFile() {
+        unordered_map<string, int> extraParts;
+        const string partsFilePath = "output/ExtraParts.txt";
+
+        if (!filesystem::exists(partsFilePath)) {
+            return extraParts;
+        }
+
+        ifstream file(partsFilePath);
+        string line;
+
+        while (getline(file, line)) {
+            if (line.empty()) continue;
+
+            size_t colonPos = line.find(':');
+            if (colonPos == string::npos) continue;
+
+            string partName = line.substr(0, colonPos);
+            string quantityStr = line.substr(colonPos + 1);
+
+            try {
+                int quantity = stoi(quantityStr);
+                extraParts[partName] = quantity;
+            } catch (...) {
+                continue;
+            }
+        }
+
+        file.close();
+        return extraParts;
+    }
+
+    bool removeExtraPartsFromFile(const vector<string> &partNames) {
+        if (partNames.empty()) {
+            return true;
+        }
+
+        unordered_map<string, int> extraParts = loadExtraPartsFromFile();
+        for (const string &partName : partNames) {
+            auto part = extraParts.find(partName);
+            if (part == extraParts.end()) {
+                continue;
+            }
+
+            if (--part->second == 0) {
+                extraParts.erase(part);
+            }
+        }
+
+        ofstream file("output/ExtraParts.txt");
+        if (!file) {
+            return false;
+        }
+
+        for (const auto &part : extraParts) {
+            file << part.first << ":" << part.second << "\n";
+        }
+
+        return static_cast<bool>(file);
+    }
+
+    vector<string> selectFromNumberedList(const vector<string> &items, const string &prompt) {
+        if (items.empty()) {
+            return vector<string>();
+        }
+
+        // Display numbered list
+        for (size_t i = 0; i < items.size(); ++i) {
+            cout << (i + 1) << ". " << items[i] << "\n";
+        }
+
+        // Get user selection
+        string selectionInput;
+        if (!promptLine("\n" + prompt, selectionInput)) {
+            return vector<string>();
+        }
+
+        if (selectionInput.empty()) {
+            return vector<string>();
+        }
+
+        // Parse selections (space or comma separated)
+        string s = selectionInput;
+        for (char &c : s) {
+            if (c == ',') c = ' ';
+        }
+
+        vector<string> selected;
+        string token;
+        stringstream ss(s);
+        vector<bool> used(items.size(), false);
+
+        while (ss >> token) {
+            try {
+                int index = stoi(token);
+                if (index >= 1 && index <= static_cast<int>(items.size())) {
+                    if (!used[index - 1]) {
+                        selected.push_back(items[index - 1]);
+                        used[index - 1] = true;
+                    }
+                }
+            } catch (...) {
+                continue;
+            }
+        }
+
+        return selected;
+    }
+
     string getCurrentDateString() {
         time_t now = time(nullptr);
         tm *localTime = localtime(&now);
@@ -270,22 +440,68 @@ namespace Helpers {
         string normalized = date;
         replace(normalized.begin(), normalized.end(), '/', '-');
 
-        if (normalized.size() == 5) {
-            if (normalized[2] != '-') return false;
-            for (size_t i = 0; i < normalized.size(); ++i) {
-                if (i == 2) continue;
-                if (!isdigit(static_cast<unsigned char>(normalized[i]))) return false;
-            }
-            return true;
-        }
+        // Check for MM-DD format (with or without leading zeros)
+        // Valid: 1-1, 01-01, 1-01, 01-1
+        if (normalized.find('-') != string::npos) {
+            size_t dashPos = normalized.find('-');
+            size_t secondDashPos = normalized.find('-', dashPos + 1);
 
-        if (normalized.size() == 10) {
-            if (normalized[2] != '-' || normalized[5] != '-') return false;
-            for (size_t i = 0; i < normalized.size(); ++i) {
-                if (i == 2 || i == 5) continue;
-                if (!isdigit(static_cast<unsigned char>(normalized[i]))) return false;
+            if (secondDashPos == string::npos) {
+                // MM-DD format
+                string monthStr = normalized.substr(0, dashPos);
+                string dayStr = normalized.substr(dashPos + 1);
+
+                if (monthStr.empty() || monthStr.size() > 2 || dayStr.empty() || dayStr.size() > 2) {
+                    return false;
+                }
+
+                for (char c : monthStr) {
+                    if (!isdigit(static_cast<unsigned char>(c))) return false;
+                }
+                for (char c : dayStr) {
+                    if (!isdigit(static_cast<unsigned char>(c))) return false;
+                }
+
+                try {
+                    int month = stoi(monthStr);
+                    int day = stoi(dayStr);
+                    if (month >= 1 && month <= 12 && day >= 1 && day <= 31) {
+                        return true;
+                    }
+                } catch (...) {
+                    return false;
+                }
+            } else {
+                // MM-DD-YYYY format
+                string monthStr = normalized.substr(0, dashPos);
+                string dayStr = normalized.substr(dashPos + 1, secondDashPos - dashPos - 1);
+                string yearStr = normalized.substr(secondDashPos + 1);
+
+                if (monthStr.empty() || monthStr.size() > 2 || dayStr.empty() || dayStr.size() > 2 || yearStr.size() != 4) {
+                    return false;
+                }
+
+                for (char c : monthStr) {
+                    if (!isdigit(static_cast<unsigned char>(c))) return false;
+                }
+                for (char c : dayStr) {
+                    if (!isdigit(static_cast<unsigned char>(c))) return false;
+                }
+                for (char c : yearStr) {
+                    if (!isdigit(static_cast<unsigned char>(c))) return false;
+                }
+
+                try {
+                    int month = stoi(monthStr);
+                    int day = stoi(dayStr);
+                    int year = stoi(yearStr);
+                    if (month >= 1 && month <= 12 && day >= 1 && day <= 31 && year > 0) {
+                        return true;
+                    }
+                } catch (...) {
+                    return false;
+                }
             }
-            return true;
         }
 
         return false;
@@ -295,12 +511,45 @@ namespace Helpers {
         string normalized = date;
         replace(normalized.begin(), normalized.end(), '/', '-');
 
-        if (normalized.size() == 5) {
-            return getCurrentYearString() + "-" + normalized.substr(0, 2) + "-" + normalized.substr(3, 2) + ".txt";
-        }
+        // Find dashes to split the date
+        size_t firstDash = normalized.find('-');
+        size_t secondDash = normalized.find('-', firstDash + 1);
 
-        if (normalized.size() == 10) {
-            return normalized.substr(6, 4) + "-" + normalized.substr(0, 2) + "-" + normalized.substr(3, 2) + ".txt";
+        if (firstDash != string::npos) {
+            string monthStr = normalized.substr(0, firstDash);
+            
+            if (secondDash == string::npos) {
+                // MM-DD format
+                string dayStr = normalized.substr(firstDash + 1);
+                
+                try {
+                    int month = stoi(monthStr);
+                    int day = stoi(dayStr);
+                    
+                    char buffer[20];
+                    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d.txt", 
+                             stoi(getCurrentYearString()), month, day);
+                    return string(buffer);
+                } catch (...) {
+                    return normalized + ".txt";
+                }
+            } else {
+                // MM-DD-YYYY format
+                string dayStr = normalized.substr(firstDash + 1, secondDash - firstDash - 1);
+                string yearStr = normalized.substr(secondDash + 1);
+                
+                try {
+                    int month = stoi(monthStr);
+                    int day = stoi(dayStr);
+                    int year = stoi(yearStr);
+                    
+                    char buffer[20];
+                    snprintf(buffer, sizeof(buffer), "%04d-%02d-%02d.txt", year, month, day);
+                    return string(buffer);
+                } catch (...) {
+                    return normalized + ".txt";
+                }
+            }
         }
 
         return normalized + ".txt";
@@ -402,9 +651,9 @@ namespace Helpers {
 
             cout << "\nDocument Actions" << "\n"
                  << "----------------" << "\n"
-                 << "1. Delete ticket by number" << "\n"
+                 << "1. Add a new ticket" << "\n"
                  << "2. Edit ticket by number" << "\n"
-                 << "3. Add a new ticket" << "\n"
+                 << "3. Delete ticket by number" << "\n"
                  << "4. Refresh document" << "\n"
                  << "5. Return" << "\n" << "\n";
 
@@ -414,7 +663,7 @@ namespace Helpers {
             }
             transform(action.begin(), action.end(), action.begin(), [](unsigned char c) { return tolower(c); });
 
-            if (action == "1" || action == "delete" || action == "d") {
+            if (action == "3" || action == "delete" || action == "d") {
                 string ticketInput;
                 if (!promptLine("Enter ticket number to delete: ", ticketInput)) return false;
                 int ticketNumber;
@@ -573,7 +822,7 @@ namespace Helpers {
                 continue;
             }
 
-            if (action == "3" || action == "add" || action == "a") {
+            if (action == "1" || action == "add" || action == "a") {
                 string ticketInput;
                 if (!promptLine("Enter Ticket Number: ", ticketInput)) return false;
                 int ticketNumber;
@@ -762,8 +1011,8 @@ namespace Helpers {
     }
 
     int getLaptopTypeOrder(const string &laptop_type) {
-        if (laptop_type == "N08933-001") return 0;
-        if (laptop_type == "N08935-001") return 1;
+        if (laptop_type == "LCD N08933-001") return 0;
+        if (laptop_type == "LCD N08935-001") return 1;
         return 2;
     }
 

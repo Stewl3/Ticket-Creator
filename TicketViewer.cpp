@@ -5,6 +5,8 @@
 #include <string>
 #include <algorithm>
 #include <filesystem>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -42,6 +44,7 @@ void TicketViewer::run() {
             case '4': choiceInput = "4"; break;
             default:
                 cout << "Invalid selection. Please try again." << "\n";
+                this_thread::sleep_for(chrono::milliseconds(500));
                 continue;
         }
 
@@ -65,11 +68,13 @@ void TicketViewer::run() {
 
                 if (dateInput.empty()) {
                     cout << "Date cannot be empty." << "\n";
+                    this_thread::sleep_for(chrono::milliseconds(500));
                     continue;
                 }
 
                 if (!Helpers::isValidDateFormat(dateInput)) {
                     cout << "Invalid date format. Please use MM-DD or MM-DD-YYYY." << "\n";
+                    this_thread::sleep_for(chrono::milliseconds(500));
                     continue;
                 }
 
@@ -104,7 +109,7 @@ void TicketViewer::run() {
 
             while (true) {
                 string choice;
-                if (!Helpers::promptLine("Select a file to open: ", choice)) return;
+                if (!Helpers::promptLine("Select a file to open: ", choice)) break;
 
                 if (choice.empty()) {
                     cout << "Please enter a selection." << "\n";
@@ -133,6 +138,7 @@ void TicketViewer::run() {
                 } catch (...) {}
 
                 cout << "Invalid selection. Please try again." << "\n";
+                this_thread::sleep_for(chrono::milliseconds(500));
             }
             continue;
         }
@@ -147,7 +153,7 @@ void TicketViewer::run() {
             
             while (true) {
                 string ticketInput;
-                if (!Helpers::promptLine("Enter ticket number to search (or type 'back' to return): ", ticketInput)) return;
+                if (!Helpers::promptLine("Enter ticket number to search (or type 'back' to return): ", ticketInput)) break;
 
                 string lowerInput = ticketInput;
                 transform(lowerInput.begin(), lowerInput.end(), lowerInput.begin(), [](unsigned char c) { return tolower(c); });
@@ -158,6 +164,7 @@ void TicketViewer::run() {
                 int ticketNumber;
                 if (!Helpers::parseTicketNumber(ticketInput, ticketNumber)) {
                     cout << "Invalid ticket number." << "\n";
+                    this_thread::sleep_for(chrono::milliseconds(500));
                     continue;
                 }
 
@@ -167,5 +174,6 @@ void TicketViewer::run() {
         }
 
         cout << "Invalid selection. Please try again." << "\n";
+        this_thread::sleep_for(chrono::milliseconds(500));
     }
 }

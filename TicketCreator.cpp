@@ -3,8 +3,11 @@
 
 #include <iostream>
 #include <sstream>
+#include <string>
 #include <vector>
 #include <algorithm>
+#include <chrono>
+#include <thread>
 
 using namespace std;
 
@@ -22,18 +25,19 @@ void TicketCreator::run() {
         Helpers::clearScreen();
         Helpers::printCreatorHeader();
         
-        if (!Helpers::promptLine("\nEnter Ticket Number ('View' for saved tickets or 'Esc' for Main Menu): \n", ticket_input)) break;
+        if (!Helpers::promptLine("\nEnter Ticket Number ('Esc' for Main Menu): \n", ticket_input)) break;
 
         
         if (ticket_input.empty()) {
             cout << "Ticket number cannot be empty. Please try again." << "\n" << "\n";
+            this_thread::sleep_for(chrono::milliseconds(500));
             continue;
         }
         
         
         string lower = ticket_input;
         transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) { return tolower(c); });
-        if (lower == "view" || lower == "show") {
+        if (lower == "v" || lower == "t" || lower == "s") {
             if (!Helpers::manageTicketDocument("output/Tickets/" + Helpers::getCurrentDateString() + ".txt")) {
                 return;
             }
@@ -43,6 +47,7 @@ void TicketCreator::run() {
 
         if (!Helpers::parseTicketNumber(ticket_input, ticket_number)) {
             cout << "Invalid ticket number. Please enter a numeric ticket number or type 'View' To view tickets." << "\n" << "\n";
+            this_thread::sleep_for(chrono::milliseconds(500));
             continue;
         }
 
@@ -68,6 +73,61 @@ void TicketCreator::run() {
 
         vector<string> uniqueParts = Helpers::parseParts(part_selection, partsMap);
         string parts_list = Helpers::joinPartsList(uniqueParts);
+        vector<string> selectedExtraParts;
+
+        // Ask about extra parts
+        cout << "\n";
+        auto extraParts = Helpers::loadExtraPartsFromFile();
+        
+        if (!extraParts.empty()) {
+            string addExtraInput;
+            if (Helpers::promptLine("Add extra parts to this ticket? (Y/N): ", addExtraInput)) {
+                if (!addExtraInput.empty()) {
+                    char addExtra = toupper(static_cast<unsigned char>(addExtraInput[0]));
+                    
+                    if (addExtra == 'Y') {
+                        Helpers::clearScreen();
+                        Helpers::printCreatorHeader();
+                        
+                        cout << "Available Extra Parts:\n"
+                             << "---------------------\n";
+                        
+                        vector<string> extraPartNames;
+                        for (const auto &entry : extraParts) {
+                            extraPartNames.push_back(entry.first + " (Available: " + to_string(entry.second) + ")");
+                        }
+                        
+                        vector<string> selectedExtra = Helpers::selectFromNumberedList(
+                            extraPartNames,
+                            "Select parts by number (space or comma separated, e.g., '1 3 5'): "
+                        );
+                        
+                        // Clean up the selected parts (remove the availability info)
+                        if (!selectedExtra.empty()) {
+                            for (auto &part : selectedExtra) {
+                                size_t openParen = part.find(" (Available:");
+                                if (openParen != string::npos) {
+                                    part = part.substr(0, openParen);
+                                }
+                            }
+                            selectedExtraParts = selectedExtra;
+                            
+                            // Add selected extra parts to parts_list
+                            if (!parts_list.empty()) {
+                                parts_list += ", ";
+                            }
+                            
+                            for (size_t i = 0; i < selectedExtra.size(); ++i) {
+                                parts_list += selectedExtra[i];
+                                if (i + 1 < selectedExtra.size()) {
+                                    parts_list += ", ";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
         Helpers::printTicket(ticket_number, serial_number, laptop_type, parts_list);
 
@@ -86,6 +146,7 @@ void TicketCreator::run() {
             if (!Helpers::promptLine("Select an option: ", choiceInput)) return;
             if (choiceInput.empty()) {
                 cout << "Invalid selection. Please try again." << "\n";
+                this_thread::sleep_for(chrono::milliseconds(500));
                 continue;
             }
             char choice = toupper(static_cast<unsigned char>(choiceInput[0]));
@@ -132,7 +193,10 @@ void TicketCreator::run() {
                     break;
                 }
                 case '5': {
-                    Helpers::saveTicketToFile(laptop_type, ticket_number, serial_number, parts_list);
+                    if (Helpers::saveTicketToFile(laptop_type, ticket_number, serial_number, parts_list) &&
+                        !Helpers::removeExtraPartsFromFile(selectedExtraParts)) {
+                        cout << "Ticket saved, but extra-parts inventory could not be updated." << "\n";
+                    }
                     string continueInput;
                     Helpers::promptLine("\nPress Enter to add another ticket... ", continueInput);
                     goto next_ticket;

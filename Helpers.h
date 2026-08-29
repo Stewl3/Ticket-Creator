@@ -31,4 +31,8 @@ namespace Helpers {
     void printPartsMenu();
     void printTicket(int ticket_number, const std::string &serial_number, const std::string &laptop_type, const std::string &parts_list);
     bool promptForTicketNumber(int &ticket_number);
+    std::unordered_map<std::string, int> parsePartsWithQuantities(const std::string &rawInput, const std::unordered_map<std::string, std::string> &partsMap);
+    std::unordered_map<std::string, int> loadExtraPartsFromFile();
+    bool removeExtraPartsFromFile(const std::vector<std::string> &partNames);
+    std::vector<std::string> selectFromNumberedList(const std::vector<std::string> &items, const std::string &prompt);
 }

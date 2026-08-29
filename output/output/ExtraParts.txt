@@ -1,0 +1,3 @@
+Bezel:1
+Hinge Cover:1
+Keyboard:1
